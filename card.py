@@ -24,3 +24,9 @@ class Card():
 
     def asstring(self):
         return f"{self.value_int_to_str[self.value]} of {self.suit_int_to_str[self.suit]}"
+
+    def value_as_string(self):
+        return self.value_int_to_str(self.value)
+
+    def suit_as_string(self):
+        return self.suit_int_to_str(self.suit)
