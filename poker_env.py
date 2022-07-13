@@ -43,8 +43,6 @@ class VMEnv(gym.Env):
         return (observation, info) if return_info else observation
 
     def step(self, action):
-        # Map the action (element of {0,1}) to the command to execute
-
 
         return observation, reward, done, info
 
@@ -57,34 +55,37 @@ class VMEnv(gym.Env):
         all_cards = all_cards.reshape(7,4,13)
         flush = all_cards.sum(axis=0).sum(axis=1)
         is_flush = np.max(flush) >= 5
-        stright = all_cards.sum(axis=0).sum(axis=0)
+        card_values = all_cards.sum(axis=0).sum(axis=0)
         count = 0
         high = 0
         is_stright = False
-        for i, s in enumerate(stright): 
+        for i, s in enumerate(card_values): 
             if s >= 1:
                 count += 1
-                high = i
+                hand_high = i
                 if count >=5:
+                    stright_high = i
                     is_stright = True
             else:
                 count = 0
-
         if is_stright and is_flush:
-            return 8, high
-        if np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 4)):
-            return 7, high
-        if np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 2)) and np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 3)):
-            return 6, high
+            return 8, stright_high, high    
+        is_four_of_a_kind = np.isin(card_values, 4)
+        if np.sum(is_four_of_a_kind):
+            return 7, np.argwhere(is_four_of_a_kind==True)[0][0], hand_high
+        is_three_of_a_kind = np.isin(card_values, 3)
+        is_pair = np.isin(card_values, 2)
+        if np.sum(is_pair) and np.sum(is_three_of_a_kind):
+            return 6, np.argwhere(is_three_of_a_kind==True)[0][0], hand_high
         if is_flush:
-            return 5, high
+            return 5, np.argwhere(all_cards.sum(axis=0)[np.argmax(flush)]==1)[-1][0], hand_high
         if is_stright:
-           return 4, high
-        if np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 3)):
-            return 3, high
-        if np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 2)) >= 2:
-            return 2, high
-        if np.sum(np.isin(all_cards.sum(axis=0).sum(axis=0), 2)):
-            return 1, high
-        return 0, high
+           return 4, stright_high, hand_high
+        if np.sum(is_three_of_a_kind):
+            return 3, np.argwhere(is_three_of_a_kind==True)[0][0], hand_high
+        if np.sum(is_pair) >= 2:
+            return 2, np.argwhere(is_pair==True)[1][0], hand_high
+        if np.sum(is_pair):
+            return 1, np.argwhere(is_pair==True)[0][0], hand_high
+        return 0, 0, hand_high
     
