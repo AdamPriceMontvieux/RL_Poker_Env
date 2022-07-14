@@ -3,7 +3,7 @@ from card import Card
 
 import numpy as np
 
-deck = np.arange(13)
+deck = np.arange(54)
 np.random.shuffle(deck)
 deck = deck.tolist()
 
