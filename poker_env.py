@@ -6,15 +6,19 @@ from card import Card
 
 class VMEnv(gym.Env):
 
-    def __init__(self, agents):
+    def __init__(self, training_agent, other_agents):
         self.deck = np.arange(52)
         self.community_cards = np.zeros(52,5)
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
-        self.hands = {a: '' for a in agents}
-        self.chips = {a: 100 for a in agents}
-        self.folded = {a: False for a in agents}
-        self.agents = agents
+        self.all_agents = [].append(training_agent)
+        self.all_agents.extend(other_agents)
+        self.hands = np.ones(6,52)
+        self.chips = np.ones(6) * 100
+        self.folded = np.zeros(6)
+        self.round_bets = np.zeros(6)
+        self.other_agents = other_agents
+        self.training_agent = training_agent
         self.game_step = 0
         self.round_step = 0
         self.num_agents = len(self.agents)
@@ -26,6 +30,7 @@ class VMEnv(gym.Env):
         self.pot_size = 0
         self.bet_size = 0
         self.raise_count = 0
+        self.action_space = spaces.Discrete(3)
 
     def _get_obs(self, agent):
         community_cards_state = np.sum(self.community_cards, axis=0)
@@ -40,6 +45,7 @@ class VMEnv(gym.Env):
         np.random.shuffle(self.deck)
         self.deck = self.deck.to_list()
         self.game_step = 0
+        self.round_step = 0
         for a in self.agents:
             hand = np.zeros((2,52))
             hand[0,:] = Card(self.deck.pop()).vec
@@ -53,15 +59,66 @@ class VMEnv(gym.Env):
         self.pot_size = 0
         self.bet_size = 0
         self.raise_count = 0
+        self.training_agent_chips = self.chips[self.training_agent]
 
     def reset(self, seed=None, return_info=False, options=None):
-
         self.set_up()
-
         observation = self._get_obs()
         info = self._get_info()
         return (observation, info) if return_info else observation
 
+    def step(self, action):
+        return self.agent_step(self.training_agent, action)
+        
+    def agent_step(self, action):
+        # Fold
+        if action == 0:
+           return self.fold()
+        # Call
+        elif action == 1:
+            call_size = self.bet_size - self.round_bets[self.current_actor]
+            if call_size > self.chips[self.current_actor]:
+                return self.fold()
+            else:
+                self.chips[self.current_actor] -= call_size
+                self.round_bets[self.current_actor] += call_size
+                self.pot_size += call_size
+                return self.simulate_until_next_turn()
+        # Raise
+        else:
+            bet_size = self.bet_size - self.round_bets[self.current_actor] + 1
+            if bet_size > self.chips[self.current_actor]:
+                return self.fold()
+            else:
+                self.chips[self.current_actor] -= bet_size
+                self.round_bets[self.current_actor] += bet_size
+                self.pot_size += bet_size
+                return self.simulate_until_next_turn()
+
+    def fold(self):
+        self.folded[self.training_agent] = True
+        reward = self.chips[self.training_agent] - self.training_agent_chips 
+        done = True
+        info = None
+        return None, reward, done, info
+
+    def simulate_until_next_turn(self):
+        for a in self.other_agents:
+
+        return observation, reward, done, info
+
+    def is_betting_round_over(self):
+        np.where(self.folded == 0)
+
+    def progress_game_step(self):
+        self.bet_size = 1
+        agents = [].append(self.training_agent)
+        agents.extend(self.other_agents)
+        self.round_bets = {a: 0 for a in agents}
+        self.game_step += 1
+
+    def showdown(self):
+        
 
     def render(self, mode="ansi"):
 
