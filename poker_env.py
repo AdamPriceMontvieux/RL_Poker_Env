@@ -1,6 +1,7 @@
 import gym
 from gym import spaces
 import numpy as np
+from sqlalchemy import false
 from card import Card
 
 
@@ -68,47 +69,54 @@ class VMEnv(gym.Env):
         return (observation, info) if return_info else observation
 
     def step(self, action):
-        return self.agent_step(self.training_agent, action)
+        self.training_agent_step(self.training_agent, action)
+        return self.simulate_until_next_turn()
         
-    def agent_step(self, action):
+    def agent_step(self, agent, action):
         # Fold
         if action == 0:
            return self.fold()
         # Call
         elif action == 1:
-            call_size = self.bet_size - self.round_bets[self.current_actor]
-            if call_size > self.chips[self.current_actor]:
-                return self.fold()
+            call_size = self.bet_size - self.round_bets[agent.ID]
+            if call_size > self.chips[agent]:
+                return self.fold(agent)
             else:
-                self.chips[self.current_actor] -= call_size
-                self.round_bets[self.current_actor] += call_size
+                self.chips[agent] -= call_size
+                self.round_bets[agent.ID] += call_size
                 self.pot_size += call_size
-                return self.simulate_until_next_turn()
         # Raise
         else:
-            bet_size = self.bet_size - self.round_bets[self.current_actor] + 1
-            if bet_size > self.chips[self.current_actor]:
-                return self.fold()
+            bet_size = self.bet_size - self.round_bets[agent.ID] + 1
+            if bet_size > self.chips[agent]:
+                return self.fold(agent)
             else:
-                self.chips[self.current_actor] -= bet_size
-                self.round_bets[self.current_actor] += bet_size
+                self.chips[agent] -= bet_size
+                self.round_bets[agent.ID] += bet_size
                 self.pot_size += bet_size
-                return self.simulate_until_next_turn()
 
-    def fold(self):
-        self.folded[self.training_agent] = True
-        reward = self.chips[self.training_agent] - self.training_agent_chips 
+    def fold(self, agent):
+        self.folded[agent.ID] = True
+        reward = -self.round_bets[agent] 
         done = True
         info = None
         return None, reward, done, info
 
     def simulate_until_next_turn(self):
         for a in self.other_agents:
+            if self.is_betting_round_over():
+                self.progress_game_step()
+
+            self.agent_step(a, np.random.randint(0,3))
 
         return observation, reward, done, info
 
     def is_betting_round_over(self):
-        np.where(self.folded == 0)
+        mask = np.where(self.folded == 0)
+        bets = self.round_bets[mask]
+        if bets.min() == bets.max(): 
+            return True
+        return False
 
     def progress_game_step(self):
         self.bet_size = 1
@@ -121,7 +129,7 @@ class VMEnv(gym.Env):
         
 
     def render(self, mode="ansi"):
-
+        
         return ''
 
     def score_hand(hand):
