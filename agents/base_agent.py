@@ -1,4 +1,7 @@
 class BaseAgent:
+
+    def __init__(self, ID):
+        self.ID = ID
     
     def train(self):
         """allows an agent to learn a policy"""
@@ -12,4 +15,5 @@ class BaseAgent:
     def process_observation(self, observation):
         """Process an observation vector"""
         raise NotImplementedError
+
 
