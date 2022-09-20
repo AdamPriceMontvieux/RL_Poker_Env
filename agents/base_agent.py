@@ -1,7 +1,15 @@
+import numpy as np
+
 class BaseAgent:
 
     def __init__(self, ID):
-        self.ID = ID
+        self.ID = int(ID)
+        self.hand = np.ones(52)
+        self.chips = 100
+        self.folded = 0
+        self.round_bet = 0
+        self.done = False
+        self.reward = 0
     
     def train(self):
         """allows an agent to learn a policy"""
