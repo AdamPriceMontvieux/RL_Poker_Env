@@ -8,6 +8,7 @@ class BaseAgent:
         self.chips = 100
         self.folded = 0
         self.round_bet = 0
+        self.game_bet = 0
         self.done = False
         self.reward = 0
     
