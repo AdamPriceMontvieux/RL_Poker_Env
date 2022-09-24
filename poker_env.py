@@ -1,13 +1,15 @@
+from msilib import sequence
 import gym
 from gym import spaces
 import numpy as np
 #from sqlalchemy import false
 from card import Card
+from card_converter import CardConverter
 
 
 class PokerEnv(gym.Env):
 
-    def __init__(self, training_agent, other_agents):
+    def __init__(self, training_agent, other_agents, info=False):
         self.deck = np.arange(52)
         self.community_cards = np.zeros((5, 52))
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
@@ -29,6 +31,8 @@ class PokerEnv(gym.Env):
         self.raise_count = 0
         self.action_space = spaces.Discrete(3)
         self.winner = []
+        self.card_converter = CardConverter()
+        self.info = info
 
     def get_obs(self, agent):
         community_cards_state = np.sum(self.community_cards, axis=0)
@@ -37,7 +41,7 @@ class PokerEnv(gym.Env):
     def _get_info(self):
         return {}
 
-    def set_up(self, seed=None, return_info=False, options=None):
+    def set_up(self):
         self.deck = np.arange(52)
         np.random.shuffle(self.deck)
         self.deck = self.deck.tolist()
@@ -52,11 +56,15 @@ class PokerEnv(gym.Env):
 
         self.game_number += 1
         self.dealer = self.game_number % self.num_agents
-        self.small_blind = (self.game_number+1) % self.num_agents
-        self.big_blind = (self.game_number+2) % self.num_agents
+        small_blind = (self.game_number+1) % self.num_agents
+        self.all_agents[small_blind].chips -= 1
+        self.all_agents[small_blind].round_bet += 1
+        big_blind = (self.game_number+2) % self.num_agents
+        self.all_agents[big_blind].chips -= 2
+        self.all_agents[big_blind].round_bet += 2
         self.current_actor = (self.game_number+3) % self.num_agents
-        self.pot_size = 0
-        self.bet_size = 0
+        self.pot_size = 3
+        self.bet_size = 1
         self.raise_count = 0
         self.winner = []
 
@@ -67,7 +75,12 @@ class PokerEnv(gym.Env):
         return (observation, info) if return_info else observation
 
     def step(self, action):
+        if self.current_actor != 0:
+            self.simulate_until_next_turn()
+        self.current_actor = 0
+        print(self.current_actor)
         self.agent_step(self.training_agent, action)
+        self.current_actor = 1
         return self.simulate_until_next_turn()
         
     def agent_step(self, agent, action):
@@ -75,7 +88,7 @@ class PokerEnv(gym.Env):
         if action == 0:
            return self.fold(agent)
         # Call
-        elif action == 1:
+        elif action == 1 or (action == 2 and self.raise_count >= 3):
             call_size = self.bet_size - agent.round_bet
             if call_size > agent.chips:
                 return self.fold(agent)
@@ -90,21 +103,22 @@ class PokerEnv(gym.Env):
             if bet_size > agent.chips:
                 return self.fold(agent)
             else:
-                agent.chips-= bet_size
+                agent.chips -= bet_size
                 agent.round_bet += bet_size
                 agent.reward = 0
                 self.pot_size += bet_size
+                self.raise_count += 1
 
     def fold(self, agent):
         agent.folded = 1
         agent.done = True
-        agent.reward = -agent.round_bet 
-        return self.get_obs(self.training_agent), agent.reward, True, self.get_info()
+        agent.reward = -agent.game_bet 
+        return self.get_obs(self.training_agent), agent.reward, True, {}
 
     def get_info(self):
         info = {}
-        info['hands'] = [a.hand for a in self.all_agents]
-        info['community'] = self.community_cards
+        info['hands'] = [self.cards_to_string(a.hand) for a in self.all_agents]
+        info['community'] = self.cards_to_string(self.community_cards)
         scores = np.zeros((6,3))
         for i, a in enumerate(self.all_agents):
             a.done = True
@@ -114,16 +128,28 @@ class PokerEnv(gym.Env):
         info['winners'] = self.winner
         return info
 
+    def cards_to_string(self, card_vector):
+        result = ''
+        for i in range(card_vector.shape[0]):
+            result += self.card_converter.vec_to_string(card_vector[i,:]) + '; '
+        return result 
 
     def simulate_until_next_turn(self):
-        for a in self.other_agents:
-            if self.is_betting_round_over():
-                self.progress_game_step()
+        if self.is_betting_round_over():
+            self.progress_game_step()
+        agent_sequence = np.arange(self.current_actor, self.num_agents)
+        for a in list(agent_sequence):
+            self.current_actor = a
 
-            if a.done == False:
-                self.agent_step(a, np.random.randint(0,3))
+            if self.all_agents[a].done == False: 
+                action = np.random.randint(0,3)
+                print(self.current_actor, action)
+                self.agent_step(self.all_agents[a], action)
 
-        return self.get_obs(self.training_agent), self.training_agent.reward, self.training_agent.done, self.get_info()
+                if self.is_betting_round_over():
+                    self.progress_game_step()
+
+        return self.get_obs(self.training_agent), self.training_agent.reward, self.training_agent.done, self.get_info() if self.info else {}
 
     def is_betting_round_over(self):
         folded = np.array([self.all_agents[i].folded for i in range(self.num_agents)])
@@ -135,8 +161,10 @@ class PokerEnv(gym.Env):
         return False
 
     def progress_game_step(self):
+        print('progress')
         self.bet_size = 1
         self.game_step += 1
+        self.raise_count = 0
         for a in self.all_agents:
             a.game_bet += a.round_bet
             a.round_bet = 0
@@ -150,8 +178,10 @@ class PokerEnv(gym.Env):
             self.community_cards[4,:] = Card(self.deck.pop()).vec 
         else:
             self.showdown()
+            self.training_agent.done = True
 
     def showdown(self):
+        print('showdown')
         scores = np.zeros((6,3))
         for i, a in enumerate(self.all_agents):
             if not a.folded: 
