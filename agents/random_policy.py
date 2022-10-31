@@ -2,11 +2,16 @@ import gym
 import numpy as np
 import random
 from ray.rllib.policy.policy import Policy
+from gym import spaces
 
 class RandomActions(Policy):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        #self.observation_space = dict({
+        #    "state": spaces.Discrete(52)
+        #    "obs": spaces.Discrete(53),
+        #})
 
     def get_initial_state(self):
         return [random.choice([0, 1, 2])]
