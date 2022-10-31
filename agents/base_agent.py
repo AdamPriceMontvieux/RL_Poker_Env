@@ -10,7 +10,7 @@ class BaseAgent:
         self.round_bet = 0
         self.game_bet = 0
         self.done = False
-        self.reward = 0
+        self.reward_buffer = 0
     
     def train(self):
         """allows an agent to learn a policy"""
@@ -21,7 +21,9 @@ class BaseAgent:
         raise NotImplementedError
 
     def get_obs(self):
-        return np.concatenate(self.hand.sum(axis=0), np.array([self.chips]))
+        print(self.hand.sum(axis=0))
+        print(np.array([self.chips]))
+        return np.concatenate((self.hand.sum(axis=0), np.array([self.chips])))
     
     def process_observation(self, observation):
         """Process an observation vector"""

@@ -1,5 +1,4 @@
-from lib2to3.pytree import Base
-from msilib import sequence
+
 import gym
 from gym import spaces
 import numpy as np
@@ -10,6 +9,7 @@ from ray.rllib.env.multi_agent_env import MultiAgentEnv, ENV_STATE
 from typing import Dict, Optional
 from collections import Iterable
 from agents.base_agent import BaseAgent
+from ray.rllib.utils import override
 
 class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
@@ -60,8 +60,13 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
     def get_obs(self, agent):
         obs = {}
         community_cards_state = np.sum(self.community_cards, axis=0)
-        obs[agent] = {"obs": self.agents[agent].obs, ENV_STATE: community_cards_state} 
+        obs[agent] = {"obs": self.agents[agent].get_obs(), ENV_STATE: community_cards_state} 
         return obs
+
+    def get_reward(self, agent):
+        r = self.agents[agent].reward_buffer
+        self.agents[agent].reward_buffer = 0
+        return r
         
     def _get_info(self):
         return {}
@@ -109,7 +114,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         if self.is_betting_round_over():
             self.progress_game_step()
         
-        return self.get_obs(self.current_actor)
+        return self.get_obs(self.current_actor), self.get_reward(self.current_actor), self.agents[self.current_actor].done, {}
 
 
     def _next_agent(self):
@@ -118,12 +123,12 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
     def agent_step(self, agent, action):
         # Fold
         if action == 0:
-           return self.fold(agent)
+           self.fold(agent)
         # Call
         elif action == 1 or (action == 2 and self.raise_count >= 3):
             call_size = self.bet_size - agent.round_bet
             if call_size > agent.chips:
-                return self.fold(agent)
+                self.fold(agent)
             else:
                 agent.chips -= call_size
                 agent.round_bet += call_size
@@ -133,7 +138,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         else:
             bet_size = self.bet_size - agent.round_bet + 1
             if bet_size > agent.chips:
-                return self.fold(agent)
+                self.fold(agent)
             else:
                 agent.chips -= bet_size
                 agent.round_bet += bet_size
@@ -144,8 +149,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
     def fold(self, agent):
         agent.folded = 1
         agent.done = True
-        agent.reward = -agent.game_bet 
-        return self.get_obs(self.training_agent), agent.reward, True, {}
+        agent.reward_buffer = -agent.game_bet 
 
     def get_info(self):
         info = {}
@@ -168,9 +172,10 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
 
     def is_betting_round_over(self):
-        folded = np.array([self.all_agents[i].folded for i in range(self.num_agents)])
+        folded = np.array([self.agents[i].folded for i in range(self.NUM_AGENTS)])
         mask = np.where(folded == 0)
-        round_bets = np.array([self.all_agents[i].round_bet for i in range(self.num_agents)])
+        print(mask)
+        round_bets = np.array([self.agents[i].round_bet for i in range(self.NUM_AGENTS)])
         bets = round_bets[mask]
         if bets.min() == bets.max(): 
             return True
@@ -181,9 +186,9 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         self.bet_size = 1
         self.game_step += 1
         self.raise_count = 0
-        for a in self.all_agents:
-            a.game_bet += a.round_bet
-            a.round_bet = 0
+        for a in self.players_ids:
+            self.agents[a].game_bet += self.agents[a].round_bet 
+            self.agents[a].round_bet = 0
 
         if self.game_step == 1:
             for i in range(3):
@@ -194,7 +199,6 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
             self.community_cards[4,:] = Card(self.deck.pop()).vec 
         else:
             self.showdown()
-            self.training_agent.done = True
 
     def showdown(self):
         print('showdown')
