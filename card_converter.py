@@ -13,6 +13,6 @@ class CardConverter():
     def vec_to_string(self, vector):
         if np.max(vector) == 0: return ''
         index = np.argmax(vector)
-        self.suit = int(index / 13)
-        self.value = index % 13
+        self.suit = int(index / 7)
+        self.value = index % 7
         return f"{self.value_int_to_str[self.value]} of {self.suit_int_to_str[self.suit]}"

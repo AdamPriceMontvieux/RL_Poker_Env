@@ -3,20 +3,20 @@ from card import Card
 
 import numpy as np
 
-deck = np.arange(54)
+deck = np.arange(28)
 np.random.shuffle(deck)
 deck = deck.tolist()
 
-board = np.zeros((5,52))
+board = np.zeros((5,28))
 for i in range(5):
     board[i,:] = Card(deck.pop()).vec
 
-hand = np.zeros((2,52))
+hand = np.zeros((2,28))
 for i in range(2):
     hand[i,:] = Card(deck.pop()).vec
 
 all_cards = np.concatenate((board, hand))
-all_cards = all_cards.reshape(7,4,13)
+all_cards = all_cards.reshape(7,4,7)
 
 flush = all_cards.sum(axis=0).sum(axis=1)
 

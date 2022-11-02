@@ -4,7 +4,7 @@ class BaseAgent:
 
     def __init__(self, ID):
         self.ID = int(ID)
-        self.hand = np.ones(52)
+        self.hand = np.ones(28)
         self.chips = 100
         self.folded = 0
         self.round_bet = 0

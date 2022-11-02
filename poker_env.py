@@ -10,8 +10,8 @@ from card_converter import CardConverter
 class PokerEnv(gym.Env):
 
     def __init__(self, training_agent, other_agents, info=False):
-        self.deck = np.arange(52)
-        self.community_cards = np.zeros((5, 52))
+        self.deck = np.arange(28)
+        self.community_cards = np.zeros((5, 28))
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
         self.all_agents = [training_agent]
@@ -42,13 +42,13 @@ class PokerEnv(gym.Env):
         return {}
 
     def set_up(self):
-        self.deck = np.arange(52)
+        self.deck = np.arange(28)
         np.random.shuffle(self.deck)
         self.deck = self.deck.tolist()
         self.game_step = 0
         self.round_step = 0
         for a in self.all_agents:
-            hand = np.zeros((2,52))
+            hand = np.zeros((2,28))
             hand[0,:] = Card(self.deck.pop()).vec
             hand[1,:] = Card(self.deck.pop()).vec
             a.hand = hand
@@ -209,7 +209,7 @@ class PokerEnv(gym.Env):
 
     def score_hand(self, hand):
         hand = np.concatenate((hand, self.community_cards), axis=0)
-        hand = hand.reshape(-1,4,13)
+        hand = hand.reshape(-1,4,7)
         flush = hand.sum(axis=0).sum(axis=1)      
         is_flush = np.max(flush) >= 5
         card_values = hand.sum(axis=0).sum(axis=0)      
