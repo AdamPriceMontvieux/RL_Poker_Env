@@ -25,8 +25,8 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         self._validate_config(config)
         self._load_config(config)
 
-        self.deck = np.arange(52)
-        self.community_cards = np.zeros((5, 52))
+        self.deck = np.arange(28)
+        self.community_cards = np.zeros((5, 28))
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
         self.game_step = 0
@@ -41,8 +41,8 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         self.raise_count = 0
         self.action_space = spaces.Discrete(3)
         self.observation_space = spaces.Dict({
-            "obs": spaces.Box(0, 101, shape=(53, )),
-            ENV_STATE: spaces.Box(0, 1, shape=(52, ))
+            "obs": spaces.Box(0, 500, shape=(29, )),
+            ENV_STATE: spaces.Box(0, 1, shape=(28, ))
         })
         self.winner = []
         self.card_converter = CardConverter()
@@ -75,13 +75,13 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         return {}
 
     def set_up(self):
-        self.deck = np.arange(52)
+        self.deck = np.arange(28)
         np.random.shuffle(self.deck)
         self.deck = self.deck.tolist()
         self.game_step = 0
         self.round_step = 0
         for a in self.players_ids:
-            hand = np.zeros((2,52))
+            hand = np.zeros((2,28))
             hand[0,:] = Card(self.deck.pop()).vec
             hand[1,:] = Card(self.deck.pop()).vec
             self.agents[a].hand = hand
@@ -136,7 +136,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         if self.done:
             print('done')
             print(self.get_info())
-            empty_obs = {'obs': np.zeros(53), 'state': np.zeros(52)} 
+            empty_obs = {'obs': np.zeros(29), 'state': np.zeros(28)} 
             obs = {}; rewards = {}; dones = {}
             for a in self.players_ids:
                 obs[a] = empty_obs
@@ -263,7 +263,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
     def score_hand(self, hand):
         hand = np.concatenate((hand, self.community_cards), axis=0)
-        hand = hand.reshape(-1,4,13)
+        hand = hand.reshape(-1,4,7)
         flush = hand.sum(axis=0).sum(axis=1)      
         is_flush = np.max(flush) >= 5
         card_values = hand.sum(axis=0).sum(axis=0)      

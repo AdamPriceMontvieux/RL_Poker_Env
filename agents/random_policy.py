@@ -9,8 +9,8 @@ class RandomActions(Policy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         #self.observation_space = dict({
-        #    "state": spaces.Discrete(52)
-        #    "obs": spaces.Discrete(53),
+        #    "state": spaces.Discrete(28)
+        #    "obs": spaces.Discrete(29),
         #})
 
     def get_initial_state(self):
