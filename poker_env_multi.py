@@ -60,7 +60,6 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
     def _load_config(self, config):
         self.players_ids = config.get("players_ids", [0,1,2,3,4,5])
-        
 
     def get_obs(self, agent):
         community_cards_state = np.sum(self.community_cards, axis=0)
