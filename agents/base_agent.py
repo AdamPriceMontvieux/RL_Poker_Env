@@ -12,9 +12,6 @@ class BaseAgent:
         self.done = False
         self.reward_buffer = 0
     
-    def get_obs(self):
-        return np.concatenate((self.hand.sum(axis=0), np.array([self.chips])))
-
     def get_hand(self):
         return self.hand.sum(axis=0)
 
