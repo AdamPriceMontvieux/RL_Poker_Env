@@ -10,11 +10,11 @@ class HeuristicPolicy(Policy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if args[2]['difficulty'] == 0:
-            self.HandScores = mpu.io.read('hand_value_table_norm_10.pickle')
+            self.HandScores = mpu.io.read('hand_value_table_norm_int8_10.pickle')
         if args[2]['difficulty'] == 1:
-            self.HandScores = mpu.io.read('hand_value_table_norm_100.pickle')
+            self.HandScores = mpu.io.read('hand_value_table_norm_int8_100.pickle')
         else: 
-            self.HandScores = mpu.io.read('hand_value_table_norm_1000.pickle')
+            self.HandScores = mpu.io.read('hand_value_table_norm_int8_1000.pickle')
 
     def get_initial_state(self):
         return [random.choice([0, 1, 2])]
