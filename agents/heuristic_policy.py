@@ -30,7 +30,7 @@ class HeuristicPolicy(Policy):
         **kwargs
     ):
         obs = obs_batch[0][0:28] + obs_batch[0][29:]
-        obs = np.where(obs==1)
+        obs = np.array(np.where(obs==1)[0], dtype=np.int8)
         print(obs)
         value = self.HandScores[obs.tobytes()]
         rand = np.random.random()
