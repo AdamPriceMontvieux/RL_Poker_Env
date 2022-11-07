@@ -3,15 +3,15 @@ from card import Card
 
 import numpy as np
 
-deck = np.arange(28)
+deck = np.arange(24)
 np.random.shuffle(deck)
 deck = deck.tolist()
 
-board = np.zeros((5,28))
+board = np.zeros((5,24))
 for i in range(5):
     board[i,:] = Card(deck.pop()).vec
 
-hand = np.zeros((2,28))
+hand = np.zeros((2,24))
 for i in range(2):
     hand[i,:] = Card(deck.pop()).vec
 
