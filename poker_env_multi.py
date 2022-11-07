@@ -13,20 +13,20 @@ from ray.rllib.utils import override
 
 class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
-    NUM_AGENTS = 6
+    NUM_AGENTS = 4
     NUM_ACTIONS = 3
     ACTION_SPACE = spaces.Discrete(NUM_ACTIONS)
     OBSERVATION_SPACE = None
 
-    def __init__(self,  config: Optional[Dict] = None):
+    def __init__(self, select_policy, config: Optional[Dict] = None):
 
         if config is None:
             config = {}
         self._validate_config(config)
         self._load_config(config)
 
-        self.deck = np.arange(24)
-        self.community_cards = np.zeros((5, 24))
+        self.deck = np.arange(28)
+        self.community_cards = np.zeros((5, 28))
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
         self.game_step = 0
@@ -48,10 +48,15 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         self.card_converter = CardConverter()
         self.info = False
         self.done = False
-
+        self.number_of_full_games = 0
         self.agents = {}
+        self.select_policy = select_policy
         for a in self.players_ids:
             self.agents[a] = BaseAgent(a)
+            if 'Heuristic' in self.select_policy(self.agents[a].ID, 0):
+                self.agents[a].empty_obs = {'hand': np.zeros(28), 'community': np.zeros(28)} 
+            else:
+                self.agents[a].empty_obs ={'obs': np.zeros(29), 'ENV_STATE': np.zeros(28)} 
 
     def _validate_config(self, config):
         if "players_ids" in config:
@@ -59,11 +64,13 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
             assert len(config["players_ids"]) == self.NUM_AGENTS
 
     def _load_config(self, config):
-        self.players_ids = config.get("players_ids", [0,1,2,3,4,5])
+        self.players_ids = config.get("players_ids", [0,1,2,3])
 
     def get_obs(self, agent):
         community_cards_state = np.sum(self.community_cards, axis=0)
-        return {"obs": self.agents[agent].get_obs(), ENV_STATE: community_cards_state} 
+        if 'Heuristic' in self.select_policy(self.agents[agent].ID, 0):
+            return {"hand": self.agents[agent].get_hand(), "community": community_cards_state} 
+        return {"obs": self.agents[agent].get_obs(), "state": community_cards_state} 
 
     def get_reward(self, agent):
         r = self.agents[agent].reward_buffer
@@ -74,13 +81,20 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         return {}
 
     def set_up(self):
-        self.deck = np.arange(24)
+        full_reset = False
+        for a in self.players_ids:
+            if self.agents[a].chips < 1:
+                full_reset = True
+        if full_reset:
+            self.full_reset()
+        self.deck = np.arange(28)
         np.random.shuffle(self.deck)
         self.deck = self.deck.tolist()
+        self.community_cards = np.zeros((5, 28))
         self.game_step = 0
         self.round_step = 0
         for a in self.players_ids:
-            hand = np.zeros((2,24))
+            hand = np.zeros((2,28))
             hand[0,:] = Card(self.deck.pop()).vec
             hand[1,:] = Card(self.deck.pop()).vec
             self.agents[a].hand = hand
@@ -103,6 +117,32 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         self.raise_count = 0
         self.winner = []
         self.done = False
+                
+    def full_reset(self):
+        print('full reset')
+        max_chips = 0
+        winner = 0
+        for a in self.players_ids:
+            if self.agents[a].chips > max_chips:
+                winner = a
+                max_chips = self.agents[a].chips
+            print(str(a) + ': ' + str(self.agents[a].chips) + ' chips')
+        print('Winner is ' + str(winner))
+        self.number_of_full_games += 1
+        self.game_step = 0
+        self.round_step = 0
+        self.dealer = 0
+        self.small_blind = 1
+        self.big_blind = 2
+        self.current_actor = 3
+        self.game_number = -1
+        self.pot_size = 0
+        self.bet_size = 0
+        self.raise_count = 0
+        self.agents = {}
+        for a in self.players_ids:
+            self.agents[a] = BaseAgent(a)
+
 
     def reset(self, seed=None, return_info=False, options=None):
         self.set_up()
@@ -112,7 +152,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
     @override(gym.Env)
     def step(self, action_dict):
-        print(action_dict)
+    
         self.agent_step(self.agents[self.current_actor], action_dict[self.current_actor])
         not_in_player = True
         while not_in_player:
@@ -124,21 +164,21 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         if self.is_betting_round_over():
             self.progress_game_step()
 
-        folded = np.array([self.agents[i].folded for i in range(self.NUM_AGENTS)])
-        mask = np.array(np.where(folded == 0))
-        print(mask[0].shape[0] )
-        if mask[0].shape[0] == 1:
-            self.done = True
-            self.agents[self.current_actor].reward_buffer += self.pot_size
-            self.agents[self.current_actor].chips += self.pot_size
+        if not self.done:
+            folded = np.array([self.agents[i].folded for i in range(self.NUM_AGENTS)])
+            mask = np.array(np.where(folded == 0))
+            if mask[0].shape[0] == 1:
+                self.done = True
+                self.agents[self.current_actor].reward_buffer += self.pot_size
+                self.agents[self.current_actor].chips += self.pot_size
+                self.pot_size = 0
 
         if self.done:
             print('done')
             print(self.get_info())
-            empty_obs = {'obs': np.zeros(29), 'state': np.zeros(28)} 
             obs = {}; rewards = {}; dones = {}
             for a in self.players_ids:
-                obs[a] = empty_obs
+                obs[a] = self.agents[a].empty_obs
                 rewards[a] = self.get_reward(a)
                 dones[a] = True
             dones['__all__'] = True
@@ -164,17 +204,15 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
             else:
                 agent.chips -= call_size
                 agent.round_bet += call_size
-                agent.reward = 0
                 self.pot_size += call_size
         # Raise
         else:
-            bet_size = self.bet_size - agent.round_bet + 1
+            bet_size = (self.bet_size - agent.round_bet) + 1
             if bet_size > agent.chips:
                 self.fold(agent)
             else:
                 agent.chips -= bet_size
                 agent.round_bet += bet_size
-                agent.reward = 0
                 self.pot_size += bet_size
                 self.raise_count += 1
 
@@ -187,12 +225,13 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         info = {}
         info['hands'] = [self.cards_to_string(self.agents[a].hand) for a in self.players_ids]
         info['community'] = self.cards_to_string(self.community_cards)
-        scores = np.zeros((6,3))
+        scores = np.zeros((self.NUM_AGENTS,3))
         for i, a in enumerate(self.players_ids):
             if not self.agents[a].folded: 
                 scores[i,:] = self.score_hand(self.agents[a].hand)
         info['scores'] = scores
         info['winners'] = self.winner
+        info['chips'] = [self.agents[a].chips for a in self.players_ids]
         return info
 
     def cards_to_string(self, card_vector):
@@ -231,12 +270,12 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
 
     def showdown(self):
         print('showdown')
-        scores = np.zeros((6,3))
+        scores = np.zeros((self.NUM_AGENTS,3))
         for i, a in enumerate(self.players_ids):
             self.agents[a].done = True
             if not self.agents[a].folded: 
                 scores[i,:] = self.score_hand(self.agents[a].hand)
-        winners = np.arange(6)
+        winners = np.arange(self.NUM_AGENTS)
         index = 0
         while winners.shape != () and index < 3:
             winners = winners[np.argwhere(scores[:,index][winners]==np.max(scores[:,index][winners])).squeeze()]
@@ -249,15 +288,14 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         else:
             self.agents[winners].reward_buffer = self.pot_size
             self.agents[winners].chips += self.pot_size
-        losers = np.delete(np.arange(6), winners)
+        losers = np.delete(np.arange(self.NUM_AGENTS), winners)
         for l in losers:
             self.agents[l].reward_buffer -= self.agents[l].game_bet
         self.winner = winners
         self.done = True
-
+        
 
     def render(self, mode="ansi"):
-        
         return ''
 
     def score_hand(self, hand):
@@ -267,7 +305,7 @@ class PokerEnvMulti(MultiAgentEnv, gym.Env):
         is_flush = np.max(flush) >= 5
         card_values = hand.sum(axis=0).sum(axis=0)      
         count = 0
-        hand_high = 8
+        hand_high = 0
         is_stright = False
         stright_high = 5
         for i, s in enumerate(card_values): 

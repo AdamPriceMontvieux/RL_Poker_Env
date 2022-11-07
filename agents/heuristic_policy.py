@@ -29,14 +29,13 @@ class HeuristicPolicy(Policy):
         episodes=None,
         **kwargs
     ):
-        obs = obs_batch[0][0:28] + obs_batch[0][29:]
+        obs = obs_batch[0][0:28] + obs_batch[0][28:]
         obs = np.array(np.where(obs==1)[0], dtype=np.int8)
-        print(obs)
         value = self.HandScores[obs.tobytes()]
         rand = np.random.random()
-        if value > rand * 1.5:
+        if value > rand:
             return [2], [], {} #Raise
-        elif value > rand:
+        elif value > (rand/4):
             return [1], [], {} #Call
         else: 
             return [0], [], {} #Fold

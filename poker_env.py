@@ -10,8 +10,8 @@ from card_converter import CardConverter
 class PokerEnv(gym.Env):
 
     def __init__(self, training_agent, other_agents, info=False):
-        self.deck = np.arange(24)
-        self.community_cards = np.zeros((5, 24))
+        self.deck = np.arange(28)
+        self.community_cards = np.zeros((5, 28))
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
         self.all_agents = [training_agent]
