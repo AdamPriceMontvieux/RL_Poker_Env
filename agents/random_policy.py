@@ -26,4 +26,10 @@ class RandomActions(Policy):
         episodes=None,
         **kwargs
     ):
-        return [np.random.random_integers(0,3) for x in obs_batch], [], {}
+        return [np.random.randint(0, 3) for x in obs_batch], [], {}
+
+    def get_weights(self):
+        return None
+
+    def set_weights(self, weights):
+        return None
