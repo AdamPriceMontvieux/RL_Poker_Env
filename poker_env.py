@@ -77,10 +77,17 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         community_cards_state = np.sum(self.community_cards, axis=0)
         if 'Heuristic' in self.select_policy(self.agents[agent].ID, 0):
             return {"hand": self.agents[agent].get_hand(), "community": community_cards_state} 
+        #Agent hand
         obs = self.agents[agent].get_hand()
+        #Community Cards
         obs = np.concatenate([obs, community_cards_state])
-        obs = np.concatenate([obs, self.all_bets.reshape(-1)])
-        obs = np.concatenate([obs, np.array([self.agents[a].chips for a in self.players_ids])])
+        #Bets placed each round, rolled so agent bets are in first row
+        bets = np.roll(self.all_bets, -self.agents[agent].ID, axis=0) 
+        obs = np.concatenate([obs, bets.reshape(-1)])
+        #Each agents chips 
+        chips = np.array([self.agents[a].chips for a in self.players_ids])
+        chips = np.roll(chips, -self.agents[agent].ID, axis=0) 
+        obs = np.concatenate([obs, chips])
         return {"obs": obs, "state": np.array([0])}
 
     def get_reward(self, agent):
