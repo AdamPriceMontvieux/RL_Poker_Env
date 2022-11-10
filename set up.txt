@@ -1,3 +1,8 @@
+Python Version 3.8.10
+
+pip install 'ray[rllib]'
+
+
 Python 3.8
 ray['rllib']
 Cython                             0.29.23
@@ -6,3 +11,4 @@ numpy                              1.20.1
 pygame                             2.1.0
 torch                              1.9.0
 tensorflow                         2.5.0
+

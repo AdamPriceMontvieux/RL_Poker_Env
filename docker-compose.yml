@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  gcpn:
+    build:
+        context: .
+        dockerfile : Dockerfile
+        shm_size: '10gb'
+    shm_size: '10gb'  
+    volumes:
+      - /Users/adamprice/Desktop/Poker:/Poker
+    ports:
+      - 8888:8888 
+      - 6006:6006
