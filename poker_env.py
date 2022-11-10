@@ -37,7 +37,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         self.big_blind = 2
         self.current_actor = 3
         self.game_number = -1
-        self.pot_size = 0
+        self.pot_size = 3
         self.bet_size = 2
         self.raise_count = 0
         self.action_space = spaces.Discrete(3)
@@ -128,11 +128,9 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         small_blind = (self.game_number+1) % self.NUM_AGENTS
         self.agents[small_blind].chips -= 1
         self.agents[small_blind].round_bet += 1
-        self.agents[small_blind].game_bet += 1
         big_blind = (self.game_number+2) % self.NUM_AGENTS
         self.agents[big_blind].chips -= 2
         self.agents[big_blind].round_bet += 2
-        self.agents[big_blind].game_bet += 2
         self.current_actor = (self.game_number+3) % self.NUM_AGENTS
         self.pot_size = 3
         self.bet_size = 2
@@ -158,7 +156,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         self.big_blind = 2
         self.current_actor = 3
         self.game_number = -1
-        self.pot_size = 0
+        self.pot_size = 3
         self.bet_size = 2
         self.raise_count = 0
         for a in self.players_ids:
@@ -240,7 +238,10 @@ class PokerEnv(MultiAgentEnv, gym.Env):
     def fold(self, agent):
         agent.folded = 1
         agent.done = True
+        agent.game_bet += agent.round_bet
         agent.reward_buffer = -agent.game_bet 
+        agent.game_bet = 0
+        agent.round_bet = 0
 
     def get_info(self):
         info = {}
