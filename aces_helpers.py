@@ -92,7 +92,7 @@ def create_env_etc(env_config):
         #TODO ensure agent_name is not blank
         agent_names[i] = agent_name
 
-    
+    print(policies_to_train)
 
     def select_policy(agent_id, episode, **kwargs):
         return agent_names[agent_id]
