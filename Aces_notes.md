@@ -1,7 +1,8 @@
 Spin up EC2 
+Ubunutu 22.04
 t3.2xl
 SSH only from MV AWS VPN
-
+1024GB disk space 
 
 sudo apt update 
 sudo apt install python3-pip
