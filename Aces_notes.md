@@ -1,7 +1,8 @@
-Spin up EC2 
+Spin up EC2 as per https://wiki.montvieux.io/en/how-to-ec2
 Ubunutu 22.04
 t3.2xl
 SSH only from MV AWS VPN
+RLTrainingDay.pem 
 1024GB disk space 
 
 sudo apt update 
