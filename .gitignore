@@ -9,3 +9,4 @@ agents/__pycache__/heuristic_policy.cpython-310.pyc
 agents/__pycache__/random_policy.cpython-310.pyc
 __pycache__
 checkpoint/
+models/
