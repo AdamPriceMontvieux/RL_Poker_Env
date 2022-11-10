@@ -83,6 +83,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         #Agent hand
         obs = self.agents[agent].get_hand()
         #Community Cards
+
         obs = np.concatenate([obs, community_cards_state])
         #Bets placed each round, rolled so agent bets are in first row
         bets = np.roll(self.all_bets, -self.agents[agent].ID, axis=0) 
@@ -130,9 +131,11 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         small_blind = (self.game_number+1) % self.NUM_AGENTS
         self.agents[small_blind].chips -= 1
         self.agents[small_blind].round_bet += 1
+        self.agents[small_blind].game_bet += 1
         big_blind = (self.game_number+2) % self.NUM_AGENTS
         self.agents[big_blind].chips -= 2
         self.agents[big_blind].round_bet += 2
+        self.agents[big_blind].game_bet += 2
         self.current_actor = (self.game_number+3) % self.NUM_AGENTS
         self.pot_size = 3
         self.bet_size = 2
@@ -190,7 +193,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             mask = np.array(np.where(folded == 0))
             if mask[0].shape[0] == 1:
                 self.done = True
-                self.agents[self.current_actor].reward_buffer += self.pot_size
+                self.agents[self.current_actor].reward_buffer += (self.pot_size - self.agents[self.current_actor].game_bet)
                 self.agents[self.current_actor].chips += self.pot_size
                 self.pot_size = 0
 
@@ -305,10 +308,10 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             index += 1
         if winners.shape != ():
             for w in winners:
-                self.agents[w].reward_buffer = int(self.pot_size / winners.shape[0])
+                self.agents[w].reward_buffer = int(self.pot_size / winners.shape[0]) - self.agents[w].game_bet
                 self.agents[w].chips += int(self.pot_size / winners.shape[0])
         else:
-            self.agents[winners].reward_buffer = self.pot_size
+            self.agents[winners].reward_buffer = self.pot_size - self.agents[winners].game_bet
             self.agents[winners].chips += self.pot_size
         losers = np.delete(np.arange(self.NUM_AGENTS), winners)
         for l in losers:
