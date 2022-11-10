@@ -305,7 +305,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             index += 1
         if winners.shape != ():
             for w in winners:
-                self.agents[w].reward_buffer = int(self.pot_size / winners.shape[0]) - self.agents[winners].game_bet
+                self.agents[w].reward_buffer = int(self.pot_size / winners.shape[0]) - self.agents[w].game_bet
                 self.agents[w].chips += int(self.pot_size / winners.shape[0])
         else:
             self.agents[winners].reward_buffer = self.pot_size - self.agents[winners].game_bet
