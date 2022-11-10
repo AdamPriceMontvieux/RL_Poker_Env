@@ -7,7 +7,10 @@ from card import Card
 from card_converter import CardConverter
 from ray.rllib.env.multi_agent_env import MultiAgentEnv, ENV_STATE
 from typing import Dict, Optional
-from collections import Iterable
+try:
+    from collections.abc import Iterable
+except ImportError:
+    from collections import Iterable
 from agents.base_agent import BaseAgent
 from ray.rllib.utils import override
 
