@@ -4,3 +4,6 @@ Notebooks/5_card_values_100.npy
 Notebooks/SevenCardHands.npy
 Notebooks/SixCardHands.npy
 Notebooks/TwoCardHands.npy
+
+__pycache__/
+./ipynb_checkpoints/
