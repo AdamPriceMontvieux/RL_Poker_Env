@@ -54,11 +54,11 @@ class TrainedPolicyAgent(Policy):
         dic = {'obs': torch.tensor(obs_batch.reshape(1, -1))}
         return [torch.argmax(self.model(dic, [torch.tensor(np.zeros(0))], torch.tensor(np.zeros(1)))[0]).item()], [], {}
 
-    def get_weights(self):
-        return None
+    # def get_weights(self):
+    #     return None
 
-    def set_weights(self, weights):
-        return None
+    # def set_weights(self, weights):
+    #     return None
 
 def get_heuristic_policy(difficulty=0):
     return (HeuristicPolicy, heuristic_observation_space, action_space, {'difficulty': difficulty})
@@ -84,6 +84,7 @@ def create_env_etc(env_config):
                 policies[i] = (TrainedPolicyAgent, PPO_Agent_observation_space, action_space,{'policy_checkpoint_path' : policy_checkpoint_path})
                 #policies[i] = (TrainedPolicyAgent, PPO_Agent_observation_space, action_space, policy_checkpoint_path, {})
             else:
+                print('using default policy spec')
                 policies[i] = PolicySpec(config={})
             agent_name =  'ppo_'+str(i)
         if 'train' in agent:
