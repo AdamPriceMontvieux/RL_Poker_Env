@@ -1,13 +1,14 @@
 version: '3.8'
 services:
   gcpn:
+    image: rl-training
     build:
         context: .
-        dockerfile : Dockerfile
         shm_size: '10gb'
     shm_size: '10gb'  
-    volumes:
-      - /Users/adamprice/Desktop/Poker:/Poker
+#    volumes:
+#      - .:/app
+    environment:
+      LOG_LEVEL: "DEBUG"
     ports:
-      - 8888:8888 
       - 6006:6006

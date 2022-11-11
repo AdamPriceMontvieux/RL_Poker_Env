@@ -1,5 +1,4 @@
 ray[rllib]
-jupyter==1.0.0
 mpu==0.23.1
 torch==1.13.0
 tensorboard==2.10.0
