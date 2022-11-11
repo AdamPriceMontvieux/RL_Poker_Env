@@ -12,23 +12,18 @@ __email__ = "daniel.craig@montvieux.com"
 __status__ = "Development"
 
 import os
-import sys
-import uuid
 import logging
+import random
 
 import torch as torch
 
 from poker_env import PokerEnv
-from agents.random_policy import RandomActions
-from agents.heuristic_policy import HeuristicPolicy
 from ray.rllib.algorithms.ppo import PPOConfig
 from gym import spaces
-import mpu
 import numpy as np
-import ray
-import tqdm
 from ray.rllib.models import MODEL_DEFAULTS
 from ray.rllib.policy.policy import PolicySpec
+from agents.heuristic_policy import HeuristicPolicy
 from ray.tune.registry import register_env
 from ray.rllib.policy.policy import Policy
 
@@ -37,7 +32,7 @@ logger.setLevel(os.getenv("LOG_LEVEL", "INFO").upper())
 
 trained_policies=[]
 def select_policy(agent_id, episode, **kwargs):
-    return ["learned1", "learned2", "learned3", "learned4"][agent_id]
+    return ["learned", "agent1", "agent2", "agent3"][agent_id]
 
 def policies_to_train():
     return ["learned", "agent1", "agent2", "agent3"][0:1+(3-len(trained_policies))]
@@ -50,30 +45,28 @@ def get_policy_def():
     }
 
     for i in range(1,4):
+        agent_key = "agent" + str(i)
         if len(trained_policies) > i:
-            policies["agent" + i] = (classmap["agent" + i], PPO_Agent_observation_space, action_space, {})
+            policies[agent_key] = (classmap[agent_key], PPO_Agent_observation_space, action_space, {})
         else:
-            policies["agent" + i] = PolicySpec(
-                config={}
-            )
+            policies[agent_key] = PolicySpec(config={})
 
     return policies
 
 def env_creator(config):
-    env = PokerEnv(select_policy, config)
-    return env
+    return PokerEnv(select_policy, config)
 
 register_env("poker", lambda config: env_creator(config))
 
 PPO_Agent_observation_space = spaces.Dict({
-            "obs": spaces.Box(0, 400, shape=(24+24+16+4, )),
-            "state": spaces.Box(0, 1, shape=(1, )),
-        })
+    "obs": spaces.Box(0, 400, shape=(24+24+16+4, )),
+    "state": spaces.Box(0, 1, shape=(1, ))
+})
 
 heuristic_observation_space = spaces.Dict({
-            "hand": spaces.Box(0, 1, shape=(24, )),
-            "community": spaces.Box(0, 1, shape=(24, ))
-        })
+    "hand": spaces.Box(0, 1, shape=(24, )),
+    "community": spaces.Box(0, 1, shape=(24, ))
+})
 action_space = spaces.Discrete(3)
 
 #Defines the learning models architecture.
@@ -93,7 +86,6 @@ class TrainedPolicyAgent(Policy):
             episodes=None,
             **kwargs
     ):
-        # return inference(is_training=tf.constant(False), observations=obs_batch, timestep=tf.constant(-1, dtype=tf.int64))['actions_0'][0]
         dic = {'obs': torch.tensor(obs_batch.reshape(1, -1))}
         return [torch.argmax(self.model(dic, [torch.tensor(np.zeros(0))], torch.tensor(np.zeros(1)))[0]).item()], [], {}
 
@@ -124,7 +116,8 @@ classmap = {
     "agent3": TrainedPolicyAgent3,
 }
 
-for run in range(10):
+print("Starting Training")
+for run in range(1):
     config = (
         PPOConfig()
         # Each rollout worker uses a single cpu
@@ -141,13 +134,15 @@ for run in range(10):
     )
     trainer = config.build(env="poker")
 
-    iterations = 20
+    iterations = 10
     for i in range(iterations):
-        logger.debug("Run %d Iteration %d" % (run, i))
+        print("Run %d Iteration %d with policy def %s" % (run, i, get_policy_def()))
         trainer.train()
 
     learned_policy = trainer.get_policy('learned')
-    logger.debug("learned_policy %s" % learned_policy.__dict__)
+    print("learned_policy %s" % learned_policy.__dict__)
+
+    trained_policies[random.randint(0, 3)] = learned_policy
 
 
-    iterations *= 1.5
+    iterations = round(iterations * 1.5)

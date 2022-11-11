@@ -7,6 +7,7 @@ COPY requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
 
 ENV PYTHONPATH="/app"
+ENV PYTHONUNBUFFERED 1
 
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
