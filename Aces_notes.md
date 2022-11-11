@@ -19,3 +19,10 @@ python3 -m tensorboard.main --logdir=~/ray_results --host 0.0.0.0
 Look at 
 http://localhost:6006/?tagFilter=episode_reward_mean#timeseries 
 Filter on episode_reward_mean 
+
+
+trainer.load_checkpoint('checkpoint/many_algos/checkpoint_000484/checkpoint-484')
+pol = trainer.get_policy('dqn')
+dqn_weights = pol.get_weights()
+
+trainer.get_policy('dqn').set_weights(dqn_weights)
