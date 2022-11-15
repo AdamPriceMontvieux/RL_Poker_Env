@@ -31,7 +31,6 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         self.hand_values = {0: 'High Card', 1: 'Pair', 2: 'Two Pair', 3: 'Three Of A Kind',
         4: 'Straight', 5: 'Flush', 6: 'Full House', 7: 'Four Of A Kind', 8: 'Stright Flush'}
         self.game_step = 0
-        self.round_step = 0
         self.dealer = 0
         self.small_blind = 1
         self.big_blind = 2
@@ -46,7 +45,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             "state": spaces.Box(0, 1, shape=(1, )),
         })
         #self.observation_space = spaces.Box(0, 400, shape=(24+24+16+4, ))
-        self.winner = []
+        self.winner = np.zeros(4)
         self.card_converter = CardConverter()
         self.info = False
         self.done = False
@@ -111,7 +110,6 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         self.deck = self.deck.tolist()
         self.community_cards = np.zeros((5, 24))
         self.game_step = 0
-        self.round_step = 0
         for a in self.players_ids:
             hand = np.zeros((2,24))
             hand[0,:] = Card(self.deck.pop()).vec
@@ -135,7 +133,6 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         self.pot_size = 3
         self.bet_size = 2
         self.raise_count = 0
-        self.winner = []
         self.done = False
                 
     def full_reset(self):
@@ -149,19 +146,8 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             #print(str(a) + ': ' + str(self.agents[a].chips) + ' chips')
         #print('Winner is ' + str(winner))
         self.number_of_full_games += 1
-        self.game_step = 0
-        self.round_step = 0
-        self.dealer = 0
-        self.small_blind = 1
-        self.big_blind = 2
-        self.current_actor = 3
-        self.game_number = -1
-        self.pot_size = 3
-        self.bet_size = 2
-        self.raise_count = 0
         for a in self.players_ids:
             self.agents[a].chips = 100
-
 
     def reset(self, seed=None, return_info=False, options=None):
         self.set_up()
@@ -171,15 +157,14 @@ class PokerEnv(MultiAgentEnv, gym.Env):
 
     @override(gym.Env)
     def step(self, action_dict):
-    
         self.agent_step(self.agents[self.current_actor], action_dict[self.current_actor])
-        not_in_player = True
-        while not_in_player:
-            self.round_step += 1
-            self.current_actor = (self.game_number+3+self.round_step) % self.NUM_AGENTS
-            not_in_player = self.agents[self.current_actor].done
+        not_in_play = True
+        while not_in_play:
+            self.current_actor += 1
+            self.current_actor = 0 if self.current_actor == self.NUM_AGENTS else self.current_actor
+            not_in_play = self.agents[self.current_actor].done
             if self.done: break
-
+        
         if self.is_betting_round_over():
             self.progress_game_step()
 
@@ -188,8 +173,8 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             mask = np.array(np.where(folded == 0))
             if mask[0].shape[0] == 1:
                 self.done = True
-                self.agents[self.current_actor].reward_buffer += (self.pot_size - self.agents[self.current_actor].game_bet)
-                self.agents[self.current_actor].chips += self.pot_size
+                self.agents[np.where(folded == 0)].reward_buffer += (self.pot_size - self.agents[np.where(folded == 0)].game_bet)
+                self.agents[np.where(folded == 0)].chips += self.pot_size
                 self.pot_size = 0
 
         if self.done:
@@ -270,6 +255,7 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         bets = round_bets[mask]
         if bets.min() == bets.max(): 
             return True
+            
         return False
 
     def progress_game_step(self):
@@ -292,6 +278,14 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         else:
             self.showdown()
 
+        if not self.done:
+            self.current_actor = (self.game_number+3) % self.NUM_AGENTS
+            not_in_play = True
+            while not_in_play:
+                self.current_actor += 1
+                self.current_actor = 0 if self.current_actor == self.NUM_AGENTS else self.current_actor
+                not_in_play = self.agents[self.current_actor].done
+
     def showdown(self):
         scores = np.zeros((self.NUM_AGENTS,3))
         for i, a in enumerate(self.players_ids):
@@ -302,19 +296,23 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         index = 0
         while winners.shape != () and index < 3:
             winners = winners[np.argwhere(scores[:,index][winners]==np.max(scores[:,index][winners])).squeeze()]
-            scores[:, index]
             index += 1
         if winners.shape != ():
+
             for w in winners:
-                self.agents[w].reward_buffer = int(self.pot_size / winners.shape[0]) - self.agents[w].game_bet
+                self.agents[w].reward_buffer += int(self.pot_size / winners.shape[0]) - self.agents[w].game_bet
                 self.agents[w].chips += int(self.pot_size / winners.shape[0])
+            missed_chips = self.pot_size - (int(self.pot_size / winners.shape[0])*winners.shape[0])
+            lucky_agent = np.random.randint(0, winners.shape[0])
+            self.agents[lucky_agent].reward_buffer += missed_chips
+            self.agents[lucky_agent].chips += missed_chips
         else:
-            self.agents[winners].reward_buffer = self.pot_size - self.agents[winners].game_bet
+            self.agents[winners].reward_buffer += self.pot_size - self.agents[winners].game_bet
             self.agents[winners].chips += self.pot_size
         losers = np.delete(np.arange(self.NUM_AGENTS), winners)
         for l in losers:
             self.agents[l].reward_buffer -= self.agents[l].game_bet
-        self.winner = winners
+        self.winner[np.array(winners)] += 1
         self.done = True
         
 
@@ -322,19 +320,19 @@ class PokerEnv(MultiAgentEnv, gym.Env):
         return ''
 
     def score_hand(self, hand):
+        tmp = hand.reshape(-1,4,6).sum(axis=0).sum(axis=0)
+        hand_high = np.array(np.argwhere(tmp == tmp.max())).reshape(1,-1)[0][-1] #lol love this 
         hand = np.concatenate((hand, self.community_cards), axis=0)
         hand = hand.reshape(-1,4,6)
         flush = hand.sum(axis=0).sum(axis=1)      
         is_flush = np.max(flush) >= 5
         card_values = hand.sum(axis=0).sum(axis=0)      
         count = 0
-        hand_high = 0
         is_stright = False
         stright_high = 5
         for i, s in enumerate(card_values): 
             if s >= 1:
                 count += 1
-                hand_high = i
                 if count >=5:
                     stright_high = i
                     is_stright = True
