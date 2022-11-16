@@ -6,8 +6,8 @@ services:
         context: .
         shm_size: '10gb'
     shm_size: '10gb'  
-#    volumes:
-#      - .:/app
+    volumes:
+      - .:/app
     environment:
       LOG_LEVEL: "DEBUG"
     ports:
