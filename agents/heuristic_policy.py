@@ -10,11 +10,11 @@ class HeuristicPolicy(Policy):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)        
         if args[2]['difficulty'] == 0:
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_10.pickle')
+            self.HandScores = mpu.io.read('Heuristic_Val_Tables/hand_value_table_norm_int8_24_10.pickle')
         if args[2]['difficulty'] == 1:
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_100.pickle')
+            self.HandScores = mpu.io.read('Heuristic_Val_Tables/hand_value_table_norm_int8_24_100.pickle')
         else: 
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_1000.pickle')
+            self.HandScores = mpu.io.read('Heuristic_Val_Tables/hand_value_table_norm_int8_24_1000.pickle')
         #self.observation_space = spaces.Dict({
         #        "hand": spaces.Box(0, 1, shape=(24, )),
         #        "community": spaces.Box(0, 1, shape=(24, ))
