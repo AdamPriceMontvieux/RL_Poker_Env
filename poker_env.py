@@ -173,8 +173,8 @@ class PokerEnv(MultiAgentEnv, gym.Env):
             mask = np.array(np.where(folded == 0))
             if mask[0].shape[0] == 1:
                 self.done = True
-                self.agents[np.where(folded == 0)].reward_buffer += (self.pot_size - self.agents[np.where(folded == 0)].game_bet)
-                self.agents[np.where(folded == 0)].chips += self.pot_size
+                self.agents[np.where(folded == 0)[0][0]].reward_buffer += (self.pot_size - self.agents[np.where(folded == 0)[0][0]].game_bet)
+                self.agents[np.where(folded == 0)[0][0]].chips += self.pot_size
                 self.pot_size = 0
 
         if self.done:
