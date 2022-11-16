@@ -11,3 +11,4 @@ agents/__pycache__/random_policy.cpython-310.pyc
 __pycache__
 checkpoint/
 models/
+.DS_Store
