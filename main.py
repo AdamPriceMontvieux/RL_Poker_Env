@@ -164,7 +164,7 @@ for run in range(999):
     train_policies = policies_to_train()
     config = PPOConfig() \
         .rollouts(num_rollout_workers=8, num_envs_per_worker=1, preprocessor_pref="deepmind") \
-        .training(train_batch_size=4000, gamma=0.99, model=model, lr=0.0004) \
+        .training(train_batch_size=10000, gamma=0.99, model=model, lr=0.0004) \
         .environment(disable_env_checking=True) \
         .multi_agent(
             policies=policy_def,
