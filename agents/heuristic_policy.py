@@ -4,17 +4,22 @@ import random
 from ray.rllib.policy.policy import Policy
 from gym import spaces
 import mpu
+import pickle5 as pickle
 
 class HeuristicPolicy(Policy):
 
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)        
+        super().__init__(*args, **kwargs)
+        
         if args[2]['difficulty'] == 0:
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_10.pickle')
+            with open('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_10.pickle', "rb") as fh:
+                self.HandScores = pickle.load(fh)
         if args[2]['difficulty'] == 1:
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_100.pickle')
-        else: 
-            self.HandScores = mpu.io.read('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_1000.pickle')
+            with open('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_100.pickle', "rb") as fh:
+                self.HandScores = pickle.load(fh)
+        else:
+            with open('Heurisitc_Val_Tables/hand_value_table_norm_int8_24_1000.pickle', "rb") as fh:
+                self.HandScores = pickle.load(fh)
         #self.observation_space = spaces.Dict({
         #        "hand": spaces.Box(0, 1, shape=(24, )),
         #        "community": spaces.Box(0, 1, shape=(24, ))
