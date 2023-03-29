@@ -1,6 +1,13 @@
+.idea
 Notebooks/filename.pickle
 Notebooks/FiveCardHands.npy
 Notebooks/5_card_values_100.npy
 Notebooks/SevenCardHands.npy
 Notebooks/SixCardHands.npy
 Notebooks/TwoCardHands.npy
+.ipynb_checkpoints/
+.pyc
+__pycache__
+checkpoint/
+models/
+.DS_Store
